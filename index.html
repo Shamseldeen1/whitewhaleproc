@@ -325,6 +325,9 @@
 <!-- LIGHTBOX -->
 <div id="lightbox" onclick="closeLightbox()"><img id="lightboxImg" src="" alt=""/></div>
 
+<!-- TOAST NOTIFICATIONS -->
+<div id="toastContainer" aria-live="polite"></div>
+
 <!-- YES/NO CONFIRM MODAL -->
 <div class="modal-overlay" id="confirmModal">
   <div class="modal" style="max-width:400px">
@@ -1828,6 +1831,29 @@ class ConfirmDialog {
 
 }
 
+class Toast {
+  static show(message, type) {
+    const container = document.getElementById('toastContainer');
+    const el = document.createElement('div');
+    el.className = 'toast toast-' + (type || 'error');
+    el.innerHTML =
+      '<span class="toast-msg"></span>' +
+      '<button class="toast-close" aria-label="Dismiss">&times;</button>';
+    el.querySelector('.toast-msg').textContent = message;
+    el.querySelector('.toast-close').addEventListener('click', () => Toast._remove(el));
+    container.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('show'));
+    setTimeout(() => Toast._remove(el), 4000);
+  }
+
+  static _remove(el) {
+    if (!el.parentNode) return;
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 250);
+  }
+
+}
+
 class Lightbox {
   static openLightbox(src) {
     document.getElementById('lightboxImg').src = src;
@@ -1885,12 +1911,12 @@ class Suppliers {
     const f = inp.files[0];
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
-      alert('Please attach a PDF file.');
+      showToast('Please attach a PDF file.');
       inp.value = '';
       return;
     }
     if (f.size > 15 * 1024 * 1024) {
-      alert('Max file size is 15MB.');
+      showToast('Max file size is 15MB.');
       inp.value = '';
       return;
     }
@@ -1932,7 +1958,7 @@ class Suppliers {
   static saveSupplier() {
     const name = document.getElementById('suppName').value.trim();
     if (!name) {
-      alert('Supplier Name is required.');
+      showToast('Supplier Name is required.');
       return;
     }
     const code = document.getElementById('suppCode').value.trim();
@@ -2093,7 +2119,7 @@ class Components {
     const f = inp.files[0];
     if (!f) return;
     if (f.size > 2 * 1024 * 1024) {
-      alert('Max 2MB');
+      showToast('Max 2MB');
       return;
     }
     const r = new FileReader();
@@ -2116,7 +2142,7 @@ class Components {
   static saveComponent() {
     const desc = document.getElementById('compDesc').value.trim();
     if (!desc) {
-      alert('Description is required.');
+      showToast('Description is required.');
       return;
     }
     const code = document.getElementById('compCode').value.trim();
@@ -2214,11 +2240,11 @@ class Components {
 class Export {
   static exportExcel(rows, columns, filename) {
     if (!rows.length) {
-      alert('No data to export.');
+      showToast('No data to export.');
       return;
     }
     if (typeof XLSX === 'undefined') {
-      alert('Excel library failed to load. Check your internet connection and try again.');
+      showToast('Excel library failed to load. Check your internet connection and try again.');
       return;
     }
     const data = rows.map(r => {
@@ -2234,12 +2260,12 @@ class Export {
 
   static exportPDF(title, rows, columns) {
     if (!rows.length) {
-      alert('No data to export.');
+      showToast('No data to export.');
       return;
     }
     const w = window.open('', '_blank');
     if (!w) {
-      alert('Please allow pop-ups to export as PDF.');
+      showToast('Please allow pop-ups to export as PDF.');
       return;
     }
     const head = columns.map(c => `<th>${c.label}</th>`).join('');
@@ -2297,7 +2323,7 @@ class Export {
 
   static exportBOM(format) {
     if (!activeBomModel) {
-      alert('Select a model tab first.');
+      showToast('Select a model tab first.');
       return;
     }
     const rows = DB.bom.filter(b => b.model === activeBomModel).map(b => {
@@ -2387,7 +2413,7 @@ class BOM {
   static saveBomLine(addAnother) {
     const component = document.getElementById('bomLineComp').value;
     if (!component) {
-      alert('Select a component.');
+      showToast('Select a component.');
       return;
     }
     const obj = {
@@ -2397,7 +2423,7 @@ class BOM {
       notes: document.getElementById('bomLineNotes').value.trim()
     };
     if (!obj.qty || obj.qty <= 0) {
-      alert('Qty must be > 0');
+      showToast('Qty must be > 0');
       return;
     }
     const idx = document.getElementById('bomLineEditIdx').value;
@@ -2422,7 +2448,7 @@ class BOM {
       name = document.getElementById('modName').value.trim(),
       type = document.getElementById('modType').value.trim();
     if (!code || !name) {
-      alert('Code and Name required.');
+      showToast('Code and Name required.');
       return;
     }
     DB.models.push({
@@ -2486,12 +2512,12 @@ class BOM {
 
   static deleteBomForModel() {
     if (!activeBomModel) {
-      alert('No model selected.');
+      showToast('No model selected.');
       return;
     }
     const count = DB.bom.filter(b => b.model === activeBomModel).length;
     if (!count) {
-      alert('This model has no BOM lines to delete.');
+      showToast('This model has no BOM lines to delete.');
       return;
     }
     yesNoConfirm(`Clear ALL ${count} BOM line(s) for model "${activeBomModel}"?\nThe model itself will stay — only its BOM lines are removed.\nThis cannot be undone.`, () => {
@@ -2504,7 +2530,7 @@ class BOM {
 
   static deleteModelWithBom() {
     if (!activeBomModel) {
-      alert('No model selected.');
+      showToast('No model selected.');
       return;
     }
     const m = DB.models.find(x => x.code === activeBomModel);
@@ -2523,12 +2549,12 @@ class BOM {
     const f = inp.files[0];
     if (!f) return;
     if (!activeBomModel) {
-      alert('Select or add a model tab first.');
+      showToast('Select or add a model tab first.');
       inp.value = '';
       return;
     }
     if (typeof XLSX === 'undefined') {
-      alert('Excel library failed to load. Check your internet connection and try again.');
+      showToast('Excel library failed to load. Check your internet connection and try again.');
       inp.value = '';
       return;
     }
@@ -2633,9 +2659,9 @@ class BOM {
         renderBOM();
         renderComponents();
         renderSuppliers();
-        alert(`Import complete.\n${added} BOM line(s) added, ${updatedLines} updated, ${skipped} row(s) skipped.\n${newComps} new component(s) created, ${newSuppliers} new supplier(s) created.\n\nRecognised columns: Part Code, Description, Supplier, QTY, Unit, Unit Price (optionally Notes and Model).`);
+        showToast(`Import complete.\n${added} BOM line(s) added, ${updatedLines} updated, ${skipped} row(s) skipped.\n${newComps} new component(s) created, ${newSuppliers} new supplier(s) created.\n\nRecognised columns: Part Code, Description, Supplier, QTY, Unit, Unit Price (optionally Notes and Model).`);
       } catch (err) {
-        alert('Could not read the file. Please make sure it is a valid Excel/CSV file with columns such as: Part Code, Description, Supplier, QTY, Unit, Unit Price.');
+        showToast('Could not read the file. Please make sure it is a valid Excel/CSV file with columns such as: Part Code, Description, Supplier, QTY, Unit, Unit Price.');
       }
     };
     reader.readAsArrayBuffer(f);
@@ -2688,7 +2714,7 @@ class Orders {
       unit = document.getElementById('oiUnit').value.trim() || 'Piece',
       price = Number(document.getElementById('oiPrice').value) || 0;
     if (!desc) {
-      alert('Enter item description');
+      showToast('Enter item description');
       return;
     }
     orderItems.push({
@@ -2753,11 +2779,11 @@ class Orders {
   static saveOrder() {
     const num = document.getElementById('orderNum').value.trim();
     if (!num) {
-      alert('Order number required.');
+      showToast('Order number required.');
       return;
     }
     if (!orderItems.length) {
-      alert('Add at least one line item.');
+      showToast('Add at least one line item.');
       return;
     }
     const obj = {
@@ -2862,11 +2888,11 @@ class PurchaseOrders {
     const poNumber = document.getElementById('poPoNumber').value.trim();
     const orderNum = document.getElementById('poOrderNum').value.trim();
     if (!poNumber) {
-      alert('PO Number is required.');
+      showToast('PO Number is required.');
       return;
     }
     if (!orderNum) {
-      alert('Order Number is required.');
+      showToast('Order Number is required.');
       return;
     }
     const obj = {
@@ -2914,7 +2940,7 @@ class PurchaseOrders {
     const f = inp.files[0];
     if (!f) return;
     if (typeof XLSX === 'undefined') {
-      alert('Excel library failed to load. Check your internet connection and try again.');
+      showToast('Excel library failed to load. Check your internet connection and try again.');
       inp.value = '';
       return;
     }
@@ -2958,9 +2984,9 @@ class PurchaseOrders {
         });
         save();
         renderPurchaseOrders();
-        alert(`Import complete: ${added} PO record(s) added, ${skipped} skipped.\n\nExpected columns: Order Number, BL Number, PO Number, Notes, Division, Date Crated PO, Creator Name, Price of PO.`);
+        showToast(`Import complete: ${added} PO record(s) added, ${skipped} skipped.\n\nExpected columns: Order Number, BL Number, PO Number, Notes, Division, Date Crated PO, Creator Name, Price of PO.`);
       } catch (err) {
-        alert('Could not read the file. Please make sure it matches the expected PO columns: Order Number, BL Number, PO Number, Notes, Division, Date Crated PO, Creator Name, Price of PO.');
+        showToast('Could not read the file. Please make sure it matches the expected PO columns: Order Number, BL Number, PO Number, Notes, Division, Date Crated PO, Creator Name, Price of PO.');
       }
     };
     reader.readAsArrayBuffer(f);
@@ -3054,7 +3080,7 @@ class Shipments {
   static saveShipment() {
     const bl = document.getElementById('shipBL').value.trim();
     if (!bl) {
-      alert('BL Number required.');
+      showToast('BL Number required.');
       return;
     }
     const obj = {
@@ -3175,7 +3201,7 @@ class Tasks {
   static saveMyTask() {
     const title = document.getElementById('myTaskTitle').value.trim();
     if (!title) {
-      alert('Enter task title.');
+      showToast('Enter task title.');
       return;
     }
     const obj = {
@@ -3249,7 +3275,7 @@ class Tasks {
   static saveTeamTask() {
     const title = document.getElementById('teamTaskTitle').value.trim();
     if (!title) {
-      alert('Enter task title.');
+      showToast('Enter task title.');
       return;
     }
     const obj = {
@@ -3325,13 +3351,13 @@ class Users {
     const un = document.getElementById('userUsername').value.trim(),
       pw = document.getElementById('userPassword').value.trim();
     if (!un || !pw) {
-      alert('Username and password required.');
+      showToast('Username and password required.');
       return;
     }
     const idx = document.getElementById('userEditIdx').value;
     const dup = DB.users.find((x, xi) => x.username.toLowerCase() === un.toLowerCase() && String(xi) !== idx);
     if (dup) {
-      alert('That username is already taken. Please choose another.');
+      showToast('That username is already taken. Please choose another.');
       return;
     }
     const obj = {
@@ -3371,7 +3397,7 @@ class Users {
 
   static delUser(i) {
     if (DB.users[i].username === currentUser.username) {
-      alert('Cannot delete yourself.');
+      showToast('Cannot delete yourself.');
       return;
     }
     if (confirm('Delete user?')) {
@@ -3446,7 +3472,7 @@ class RFQ {
     const qty = Number(document.getElementById('riQty').value) || 0;
     const targetPrice = Number(document.getElementById('riTargetPrice').value) || 0;
     if (!component) {
-      alert('Enter or select a component.');
+      showToast('Enter or select a component.');
       return;
     }
     rfqItemCounter++;
@@ -3481,12 +3507,12 @@ class RFQ {
 
   static addRfqQuote() {
     if (!rfqItems.length) {
-      alert('Add at least one RFQ item before adding supplier quotes.');
+      showToast('Add at least one RFQ item before adding supplier quotes.');
       return;
     }
     const supplier = document.getElementById('rqSupplier').value;
     if (!supplier) {
-      alert('Select a supplier.');
+      showToast('Select a supplier.');
       return;
     }
     const prices = {};
@@ -3543,11 +3569,11 @@ class RFQ {
   static saveRfq() {
     const num = document.getElementById('rfqNum').value.trim();
     if (!num) {
-      alert('RFQ Number is required.');
+      showToast('RFQ Number is required.');
       return;
     }
     if (!rfqItems.length) {
-      alert('Add at least one RFQ item.');
+      showToast('Add at least one RFQ item.');
       return;
     }
     const idx = document.getElementById('rfqEditIdx').value;
@@ -3621,7 +3647,7 @@ class RFQ {
   static createPOFromRFQ(i) {
     const r = DB.rfqs[i];
     if (!r.awardedSupplier) {
-      alert('Award the RFQ to a supplier first.');
+      showToast('Award the RFQ to a supplier first.');
       return;
     }
     const q = r.quotes.find(x => x.supplier === r.awardedSupplier);
@@ -3686,7 +3712,7 @@ class Payments {
       amount = Number(document.getElementById('bpAmount').value) || 0,
       note = document.getElementById('bpNote').value.trim();
     if (!date || !amount) {
-      alert('Enter a date and amount for this balance payment.');
+      showToast('Enter a date and amount for this balance payment.');
       return;
     }
     balancePayments.push({
@@ -3718,12 +3744,12 @@ class Payments {
     const f = inp.files[0];
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
-      alert('Please attach a PDF file.');
+      showToast('Please attach a PDF file.');
       inp.value = '';
       return;
     }
     if (f.size > 10 * 1024 * 1024) {
-      alert('Max file size is 10MB.');
+      showToast('Max file size is 10MB.');
       inp.value = '';
       return;
     }
@@ -3768,7 +3794,7 @@ class Payments {
   static savePayment() {
     const order = document.getElementById('payOrder').value;
     if (!order) {
-      alert('Select a Purchase Order.');
+      showToast('Select a Purchase Order.');
       return;
     }
     const total = Number(document.getElementById('payInvoiceTotal').value) || 0;
@@ -3801,7 +3827,7 @@ class Payments {
     const paid = (p.balancePayments || []).reduce((a, b) => a + Number(b.amount || 0), 0);
     const remaining = Math.max(0, (p.balanceDue || 0) - paid);
     if (remaining <= 0) {
-      alert('Balance is already fully paid.');
+      showToast('Balance is already fully paid.');
       return;
     }
     yesNoConfirm(`Record a payment of ${fmtN(remaining)} to settle the remaining balance?`, () => {
@@ -3862,12 +3888,12 @@ class SampleInspection {
     const f = inp.files[0];
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
-      alert('Please attach a PDF file.');
+      showToast('Please attach a PDF file.');
       inp.value = '';
       return;
     }
     if (f.size > 10 * 1024 * 1024) {
-      alert('Max file size is 10MB.');
+      showToast('Max file size is 10MB.');
       inp.value = '';
       return;
     }
@@ -3911,11 +3937,11 @@ class SampleInspection {
     const itemDesc = document.getElementById('sampleItemDesc').value.trim();
     const supplierText = document.getElementById('sampleSupplierInput').value.trim();
     if (!itemDesc) {
-      alert('Item Description is required.');
+      showToast('Item Description is required.');
       return;
     }
     if (!supplierText) {
-      alert('Supplier name is required (type a new name if not yet in the Suppliers list).');
+      showToast('Supplier name is required (type a new name if not yet in the Suppliers list).');
       return;
     }
     const obj = {
@@ -3987,12 +4013,12 @@ class Specifications {
     const f = inp.files[0];
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
-      alert('Please attach a PDF file.');
+      showToast('Please attach a PDF file.');
       inp.value = '';
       return;
     }
     if (f.size > 10 * 1024 * 1024) {
-      alert('Max file size is 10MB.');
+      showToast('Max file size is 10MB.');
       inp.value = '';
       return;
     }
@@ -4041,15 +4067,15 @@ class Specifications {
     const manualName = document.getElementById('specManualName').value.trim();
     const type = document.getElementById('specType').value.trim();
     if (!component && !manualName) {
-      alert('Select a component from the list, or type a component/item name manually.');
+      showToast('Select a component from the list, or type a component/item name manually.');
       return;
     }
     if (!type) {
-      alert('Specification Type is required (e.g. TDS, Drawing…).');
+      showToast('Specification Type is required (e.g. TDS, Drawing…).');
       return;
     }
     if (!specFileData) {
-      alert('Please attach the PDF file.');
+      showToast('Please attach the PDF file.');
       return;
     }
     const obj = {
@@ -4166,7 +4192,7 @@ class Reports {
 
   static exportCurrentReport() {
     if (!currentReportRows.length) {
-      alert('No data to export for this report.');
+      showToast('No data to export for this report.');
       return;
     }
     exportExcel(currentReportRows, currentReportCols, `WhiteWhale_${currentReportName}.xlsx`);
@@ -4733,6 +4759,7 @@ document.getElementById('confirmNoBtn').addEventListener('click', () => {
 });
 
 // ═══════════════════════ LIGHTBOX ═══════════════════════
+function showToast(...args) { return Toast.show(...args); }
 function openLightbox(...args) { return Lightbox.openLightbox(...args); }
 
 function closeLightbox(...args) { return Lightbox.closeLightbox(...args); }
